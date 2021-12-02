@@ -40,19 +40,240 @@ lepto['Time']=pd.to_datetime(lepto['Time'],format='%H:%M %p').dt.time
 
 
 #Permet d'obtenir un jeu de donnée où la leptospirose est dupliqué
+def dupliqueLepto():
+    
+    #liste vide
+    l=[]
+    
+    for i in lepto.index:
+        for j in df1.index:
+            if lepto["Date"][i]==df1["Date"][j] and lepto["Time"][i].hour==df1["Time"][j].hour:
+                l.append((df1["Date"][j],df1["Time"][j],df1["Qte"][j],lepto["Lepto"][i]))
+    return l
 
-#liste vide
-l=[]
 
-for i in lepto.index:
-    for j in df1.index:
-        if lepto["Date"][i]==df1["Date"][j] and lepto["Time"][i].hour==df1["Time"][j].hour:
-            l.append((df1["Date"][j],df1["Time"][j],df1["Qte"][j],lepto["Lepto"][i]))
+
+
+
+#Permet de formatter l'heure pour obtenir dans avoir une réccurence toutes les 30 minutes.
+#ttime format de l'heure
+def time_fomat(ttime):
+    ho = ttime.strftime("%H")
+    my_time = ttime.strftime("%H:%M:00")
+
+    my_time = my_time.replace("59", "30").replace("05", "00").replace("54", "30")
+    
+    if ho == "05":
+        my_time = my_time.replace("00", "05", 1)
+
+    return my_time
+
+
+
+#Fonction permettant d'obtenir des nouveaux jeux de données en foncion du parametre d. 
+#On obtient donc des jeux de données  par 30 min, par heures, par jours et par mois. 
+#d est un string qui est entré par l'utilisateur permettant de choisir si le jeu de données deviant par jours/heure/...
+def traitement_donnee(d):
+    liste=[]
+    temp=0
+    temp2=0
+    cpt=0
+    cpt2=0
+    i=0
+    
+    
+    if d == "minutes":
+        
+        #Moyenne de données par 30 min
+        for i in range (len(df1)-1):
+        
+            if df1["Date"][i] == df1["Date"][i+1] and df1["Time"][i].hour == df1["Time"][i+1].hour:
+                
+                if df1["Time"][i].minute == 0:
+                    temp += df1["Qte"][i]
+                    cpt += 1
+                 
+                elif 0 < df1["Time"][i].minute < 30:
+                     temp = temp+df1["Qte"][i]
+                     cpt += 1
+                     
+                elif 31 <= df1["Time"][i].minute <= 59 :
+                     
+                     temp2 = temp2+df1["Qte"][i]
+                     cpt2 += 1
+                
+                
             
+            else:
+                temp2 = temp2+df1["Qte"][i]
+                cpt2 += 1
+                mean1 = temp/(cpt)
+                mean2 = temp2/(cpt2)
+                cpt=0
+                cpt2=0
+                
+                my_time = time_fomat(df1["Time"][i])
+                my_time2 = time_fomat(df1["Time"][i+1])
+     
+                liste.append((df1["Date"][i],my_time,mean1))
+                liste.append((df1["Date"][i],my_time2,mean2))
+                temp=0
+                temp2=0
+            
+           
+    elif d == "heure":   
+        
+        #Moyenne de données par heures
+        for i in range (len(df1)-1):
+           
+          
+            if df1["Date"][i] == df1["Date"][i+1] and df1["Time"][i].hour==df1["Time"][i+1].hour:
+                temp=temp+df1["Qte"][i+1]
+                cpt=cpt+1
+                
+            else:
+                
+                mean =temp/cpt
+                
+                
+                cpt=1
+                temp=df1["Qte"][i+1]
+                
+                liste.append((df1["Date"][i],df1["Time"][i].hour,mean))
+             
+    
+    elif d == "jours":
+        
+        #Moyenne de données par jours
+        for i in range (len(df1)-1):
+           
+            
+            if df1["Date"][i] == df1["Date"][i+1]:
+                temp=temp+df1["Qte"][i+1]
+                cpt=cpt+1
+                
+            else:
+               
+                mean =temp/cpt
+                
+                
+                cpt=1
+                temp=df1["Qte"][i+1]
+                liste.append((df1["Date"][i],df1["Time"][i],mean))
+                
+         
+    elif d == "mois": 
+        
+        #Moyenne de données par mois
+        for i in range (len(df1)-1):
+           
+            
+            if df1["Date"][i].month == df1["Date"][i+1].month:
+                temp=temp+df1["Qte"][i+1]
+                cpt=cpt+1
+                
+            else:
+     
+                mean =temp/cpt
+         
+                cpt=1
+                temp=df1["Qte"][i+1]
+                liste.append((df1["Date"][i].month,df1["Time"][i],mean))   
+                
+            
+    else:
+        print("ERREUR: Le praramètre utilisé n'est pas bon")
+
+    
+    
+    return liste
+
+
+         
+#Permet d'obtenir un nouveau jeu de donnée x et y 
+#x contenant les données de pluie n (jours/heures/...) avant
+#y contenant la donnée lepto à l'instant t
+#d est un string qui est entré par l'utilisateur permettant de choisir si le jeu de données devient par jours/heure/...
+#n est un int disant combien de temps avant on prends les données pour x
+def data_and_lepto(n,d):
+    k=0
+    F_Data=pd.DataFrame()
+    d_pluie=pd.DataFrame()
+    d_pluie[["Date","Time","Qte_eau"]]=traitement_donnee(d)
+    #x une liste vide
+    x=[]
+
+    if d == "minutes":
+        for i in range(len(lepto)):
+            for j in range (len(d_pluie)):
+                
+                if lepto["Date"][i] == d_pluie["Date"][j] and lepto["Time"][i] == d_pluie["Time"][j]:
+                    #print(lepto["Time"][i], d_pluie["Time"][j])
+                    x.append([[d_pluie["Qte_eau"][j-3]],[d_pluie["Qte_eau"][j-2]],[d_pluie["Qte_eau"][j]]])
+                    
+                    
+        F_Data["x"]=x 
+        F_Data["y"]=lepto["Lepto"]
+        
+    elif d == "heure":
+        for i in range(len(lepto)):
+            for j in range (len(d_pluie)):
+                if lepto["Date"][i] == d_pluie["Date"][j] and lepto["Time"][i].hour == d_pluie["Time"][j]:
+                    x.append([[d_pluie["Qte_eau"][j-3]],[d_pluie["Qte_eau"][j-2]],[d_pluie["Qte_eau"][j]]])
+            
+        F_Data["x"]=x 
+        F_Data["y"]=lepto["Lepto"]
+        
+    elif d == "jours":
+        for i in range(len(lepto)):
+            for j in range (len(d_pluie)):
+                if lepto["Date"][i] == d_pluie["Date"][j] :
+                    x.append([[d_pluie["Qte_eau"][j-3]],[d_pluie["Qte_eau"][j-2]],[d_pluie["Qte_eau"][j]]])
+    
+
+        
+        F_Data["x"]=x 
+        F_Data["y"]=lepto["Lepto"]
+       
+
+    elif d == "mois":
+        for i in range(len(lepto)):
+            for j in range (len(d_pluie)):
+                
+                if lepto["Date"][i].month == d_pluie["Date"][j] and k<=i:
+                    k += 1
+                    x.append([[d_pluie["Qte_eau"][j-3]],[d_pluie["Qte_eau"][j-2]],[d_pluie["Qte_eau"][j]]]) 
+                    
+                    
+                    
+        F_Data["x"]=x 
+        F_Data["y"]=lepto["Lepto"]
+       
+    else: 
+        print("ERREUR: Le praramètre utilisé n'est pas bon")
+
+    
+
+    
+    
+   
+    return F_Data
+
+def SaveFile(filename):
+    filename.to_csv('test2.csv', sep=',', index=False)
+    
+
+"""
+
 #Nouvelle DataFrame contenant nos données dupliquer                       
 jeuDuplique=pd.DataFrame()
-jeuDuplique[["Date","Time","Qte_eau","Qte_lepto"]]=l       
+jeuDuplique[["Date","Time","Qte_eau","Qte_lepto"]]= dupliqueLepto()  
+print(jeuDuplique)
+SaveFile(jeuDuplique)
 
-#print(jeuDuplique)
+ 
 
-
+datalepto=pd.DataFrame()
+datalepto[["x","y"]]= data_and_lepto(3,"jours")  
+print(datalepto)
+"""
