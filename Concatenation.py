@@ -55,7 +55,7 @@ def dupliqueLepto():
 
 
 
-#Permet de formatter l'heure pour obtenir dans avoir une réccurence toutes les 30 minutes.
+#Permet de formatter l'heure pour obtenir une réccurence toutes les 30 minutes.
 #ttime format de l'heure
 def time_fomat(ttime):
     ho = ttime.strftime("%H")
@@ -198,9 +198,13 @@ def traitement_donnee(d):
 def data_and_lepto(n,d):
     k=0
     F_Data=pd.DataFrame()
+    F_Data[["x1","x2","x3","y"]]=0
     d_pluie=pd.DataFrame()
     d_pluie[["Date","Time","Qte_eau"]]=traitement_donnee(d)
     #x une liste vide
+    x1=[]
+    x2=[]
+    x3=[]
     x=[]
 
     if d == "minutes":
@@ -209,7 +213,7 @@ def data_and_lepto(n,d):
                 
                 if lepto["Date"][i] == d_pluie["Date"][j] and lepto["Time"][i] == d_pluie["Time"][j]:
                     #print(lepto["Time"][i], d_pluie["Time"][j])
-                    x.append([[d_pluie["Qte_eau"][j-3]],[d_pluie["Qte_eau"][j-2]],[d_pluie["Qte_eau"][j]]])
+                    x.append([d_pluie["Qte_eau"][j-3],d_pluie["Qte_eau"][j-2],d_pluie["Qte_eau"][j]])
                     
                     
         F_Data["x"]=x 
@@ -219,16 +223,20 @@ def data_and_lepto(n,d):
         for i in range(len(lepto)):
             for j in range (len(d_pluie)):
                 if lepto["Date"][i] == d_pluie["Date"][j] and lepto["Time"][i].hour == d_pluie["Time"][j]:
-                    x.append([[d_pluie["Qte_eau"][j-3]],[d_pluie["Qte_eau"][j-2]],[d_pluie["Qte_eau"][j]]])
-            
-        F_Data["x"]=x 
+                    x1.append(d_pluie["Qte_eau"][j-3])
+                    x2.append(d_pluie["Qte_eau"][j-2])
+                    x3.append(d_pluie["Qte_eau"][j])
+                    print(x1,i)
+        F_Data["x1"]=x1
+        F_Data["x2"]=x2
+        F_Data["x3"]=x3
         F_Data["y"]=lepto["Lepto"]
         
     elif d == "jours":
         for i in range(len(lepto)):
             for j in range (len(d_pluie)):
                 if lepto["Date"][i] == d_pluie["Date"][j] :
-                    x.append([[d_pluie["Qte_eau"][j-3]],[d_pluie["Qte_eau"][j-2]],[d_pluie["Qte_eau"][j]]])
+                    x.append([d_pluie["Qte_eau"][j-3],d_pluie["Qte_eau"][j-2],d_pluie["Qte_eau"][j]])
     
 
         
@@ -242,7 +250,7 @@ def data_and_lepto(n,d):
                 
                 if lepto["Date"][i].month == d_pluie["Date"][j] and k<=i:
                     k += 1
-                    x.append([[d_pluie["Qte_eau"][j-3]],[d_pluie["Qte_eau"][j-2]],[d_pluie["Qte_eau"][j]]]) 
+                    x.append([d_pluie["Qte_eau"][j-3],d_pluie["Qte_eau"][j-2],d_pluie["Qte_eau"][j]]) 
                     
                     
                     
@@ -260,8 +268,14 @@ def data_and_lepto(n,d):
     return F_Data
 
 def SaveFile(filename):
-    filename.to_csv('test2.csv', sep=',', index=False)
-    
+    """
+    val = []
+    for e in filename["x"]:
+        val.append(f"{e[0]},{e[1]},{e[2]}")
+    filename["x"] = val
+    """
+    filename.to_csv('heurelepto2.csv', sep=',', index=False)
+
 
 """
 
@@ -271,9 +285,9 @@ jeuDuplique[["Date","Time","Qte_eau","Qte_lepto"]]= dupliqueLepto()
 print(jeuDuplique)
 SaveFile(jeuDuplique)
 
- 
-
-datalepto=pd.DataFrame()
-datalepto[["x","y"]]= data_and_lepto(3,"jours")  
-print(datalepto)
+  
 """
+datalepto=pd.DataFrame()
+datalepto[["x1","x2","x3","y"]]= data_and_lepto(3,"heure")  
+print(datalepto)
+SaveFile(datalepto)
